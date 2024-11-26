@@ -1,6 +1,6 @@
 // Import required modules
 const express = require("express");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 
 // Initialize the Express app
 const app = express();
