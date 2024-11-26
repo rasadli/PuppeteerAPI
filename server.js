@@ -19,9 +19,10 @@ app.post("/scrape", async (req, res) => {
     try {
         // Launch Puppeteer
         const browser = await puppeteer.launch({
-            headless: true, // Run browser in headless mode
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Necessary flags for some hosting environments
-        });
+            headless: true,
+            executablePath: '/usr/bin/chromium-browser', // Adjust path if needed
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+          });
 
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: "domcontentloaded" }); // Navigate to the given URL
