@@ -10,21 +10,28 @@ app.use(express.json());
 
 // Define a route for scraping data
 app.post("/scrape", async (req, res) => {
-    const { url } = req.body; // Expecting a JSON body with a `url` property
+  const { url } = req.body; // Expecting a JSON body with a `url` property
 
-    if (!url) {
-        return res.status(400).json({ error: "Missing 'url' in request body" });
-    }
+  if (!url) {
+    return res.status(400).json({ error: "Missing 'url' in request body" });
+  }
 
-    try {
-        // Launch Puppeteer
-        const browser = await puppeteer.launch({
-            headless: true, // Run browser in headless mode
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Necessary flags for some hosting environments
-        });
+  try {
+    // Launch Puppeteer with additional options for Render environment
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-zygote",
+        "--single-process",
+      ],
+    });
 
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: "domcontentloaded" }); // Navigate to the given URL
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded" }); // Navigate to the given URL
 
         // Evaluate the page to extract data
         const data = await page.evaluate(() => {
@@ -67,7 +74,7 @@ app.post("/scrape", async (req, res) => {
                 if (experience.classList.contains('experience-group')) {
                     const companyName = experience.querySelector('.experience-group-header h4') ? experience.querySelector('.experience-group-header h4').textContent.trim() : '';
                     const companyDuration = experience.querySelector('.experience-group-header p span.date-range span') ? experience.querySelector('.experience-group-header p span.date-range span').textContent.trim() : '';
-            
+
                     // Loop through the positions inside the experience group
                     const positions = Array.from(experience.querySelectorAll('.experience-group__positions li')).map(position => {
                         const positionName = position.querySelector('h3 span.experience-item__title') ? position.querySelector('h3 span.experience-item__title').textContent.trim() : '';
@@ -75,7 +82,7 @@ app.post("/scrape", async (req, res) => {
                         const positionEndTime = position.querySelector('p.experience-item__meta-item:first-child span.date-range time:nth-child(2)') ? position.querySelector('p.experience-item__meta-item:first-child span.date-range time:nth-child(2)').textContent.trim() : 'Today';
                         const positionTimeDuration = position.querySelector('p.experience-item__meta-item:first-child span span') ? position.querySelector('p.experience-item__meta-item:first-child span span').textContent.trim() : '';
                         const positionLocation = position.querySelector('p.experience-item__meta-item:last-child') ? position.querySelector('p.experience-item__meta-item:last-child').textContent.trim() : '';
-            
+
                         // Returning the position data
                         return {
                             positionName,
@@ -85,7 +92,7 @@ app.post("/scrape", async (req, res) => {
                             positionLocation
                         };
                     });
-            
+
                     // Returning the company data along with positions
                     return {
                         companyName,
@@ -100,7 +107,7 @@ app.post("/scrape", async (req, res) => {
                     const positionEndTime = experience.querySelector('p.experience-item__meta-item:first-child span.date-range time:nth-child(2)') ? experience.querySelector('p.experience-item__meta-item:first-child span.date-range time:nth-child(2)').textContent.trim() : 'Today';
                     const positionTimeDuration = experience.querySelector('p.experience-item__meta-item:first-child span span') ? experience.querySelector('p.experience-item__meta-item:first-child span span').textContent.trim() : '';
                     const positionLocation = experience.querySelector('p.experience-item__meta-item:last-child') ? experience.querySelector('p.experience-item__meta-item:last-child').textContent.trim() : '';
-            
+
                     // Returning the single position data within the same structure
                     return {
                         companyName,
@@ -114,24 +121,24 @@ app.post("/scrape", async (req, res) => {
                         }]
                     };
                 }
-            });            
+            });
 
             return { courses, languages, projects, educations, experiences };
         })
 
         // Close the browser
-        await browser.close();
+    await browser.close();
 
-        // Respond with the extracted data
-        res.status(200).json({ success: true, data });
-    } catch (error) {
-        console.error("Scraping failed:", error);
-        res.status(500).json({ success: false, error: "Scraping failed", details: error.message });
-    }
+    // Respond with the extracted data
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error("Scraping failed:", error);
+    res.status(500).json({ success: false, error: "Scraping failed", details: error.message });
+  }
 });
 
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
